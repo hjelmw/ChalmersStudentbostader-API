@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from aptus import unlockDoor, getLaundryBookings
+from aptus import unlockDoor, getLaundryBookings, getAvailableMachines, bookMachine
 
 app = Flask(__name__)
 
@@ -7,8 +7,8 @@ app = Flask(__name__)
 
 ## opens one of the doors controlled by Aptusport
 ## params: 
-##    username (chs mina sidor), 
-##    password (chs mina sidor), 
+##    usr- username (chs mina sidor) 
+##    pwd - password (chs mina sidor)
 ##    id of door to unlock (see available_doors.json)
 ##
 ## result: 
@@ -17,18 +17,17 @@ app = Flask(__name__)
 def unlock():
     usr = request.form['usr']
     pwd = request.form['pwd']
-    door_name = request.form['door_name']
+    door_name = request.form['door']
     return jsonify(
         status = 'success',
         data = unlockDoor(usr, pwd, door_name), 
         mimetype = 'application/json'
     )
 
-
-## lists booked laundry rooms along with dates from mina sidor
+## lists booked machines along with dates from mina sidor
 ## params:
-##    username (chs mina sidor)
-##    password (chs mina sidor)
+##    usr - username (chs mina sidor) 
+##    pwd - password (chs mina sidor)
 ##
 ## result:
 ##    JSON string containing booked laundry rooms
@@ -42,27 +41,57 @@ def laundrySchedule():
         mimetype = 'application/json'
     )
 
-## books given laundry machine 
+## fetches x closest machines available to book
 ## params:
-##    username (chs mina sidor)
-##    password (chs mina sidor)
-##    id of machine (see available_machines.json)    
+##    usr - username (chs mina sidor) 
+##    pwd - password (chs mina sidor)
+##    nom - number of available machines to display (OPTIONAL, default is 10)
 ##
 ## result:
-##    JSON string containing a success or failure
-@app.route('/api/v1/laundry/book')
+##    JSON string containing available machines and their associated data.
+@app.route('/api/v1/laundry/available', methods=['GET'])
+def AvailableMachines():
+    usr = request.form['usr']
+    pwd = request.form['pwd']
+    nom = request.form['x']
+    return jsonify(
+        status = 'success',
+        data = getAvailableMachines(usr, pwd),
+        mimetype = 'application/json'
+    )
+
+## books given laundry machine 
+## params:
+##    usr  - username (chs mina sidor) 
+##    pwd  - password (chs mina sidor)
+##    grp  - group id (see available_machines.json)    
+##    pss  - booking pass number (?)
+##    date - starting date for when to book machine (ISO xx-xx-xx)
+##
+## result:
+##    JSON string containing a success or failure 
+@app.route('/api/v1/laundry/book', methods=['POST'])
 def laundryBook():
-    return 0
+    usr = request.form['usr']
+    pwd = request.form['pwd']
+    grp = request.form['grp']
+    pss = request.form['pss']
+    date = request.form['date']
+    return jsonify(
+        status = 'success',
+        data = bookMachine(usr, pwd, grp, pss, date),
+        mimetype = 'application/json'
+    )
 
 ## cancels a booking
 ## params:
-##    username (chs mina sidor)
-##    password (chs mina sidor)
+##    usr - username (chs mina sidor)
+##    pwd - password (chs mina sidor)
 ##    id of machine or timestamp
 ##
 ## result:
 ##    JSON string containing a success or failure
-@app.route('/api/v1/laundry/cancel')
+@app.route('/api/v1/laundry/cancel', methods=['POST'])
 def laundryCancel():
     return 0
 
