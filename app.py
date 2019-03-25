@@ -1,9 +1,7 @@
 from flask import Flask, jsonify, request
-from aptus import unlockDoor, getLaundryBookings, getAvailableMachines, bookMachine
+import aptus
 
 app = Flask(__name__)
-
-
 
 ## opens one of the doors controlled by Aptusport
 ## params: 
@@ -13,15 +11,15 @@ app = Flask(__name__)
 ##
 ## result: 
 ##    JSON string containing a success or failure
-@app.route('/api/v1/door/unlock', methods=['POST'])
+@app.route("/api/v1/door/unlock", methods=["POST"])
 def unlock():
-    usr = request.form['usr']
-    pwd = request.form['pwd']
-    door_name = request.form['door']
+    user = request.form["user"]
+    pwd = request.form["password"]
+    door_name = request.form["door"]
     return jsonify(
-        status = 'success',
-        data = unlockDoor(usr, pwd, door_name), 
-        mimetype = 'application/json'
+        status = "success",
+        data = aptus.unlockDoor(user, pwd, door_name), 
+        mimetype = "application/json"
     )
 
 ## lists booked machines along with dates from mina sidor
@@ -31,57 +29,59 @@ def unlock():
 ##
 ## result:
 ##    JSON string containing booked laundry rooms
-@app.route('/api/v1/laundry/schedule', methods=['GET'])
+@app.route("/api/v1/laundry/schedule", methods=["GET"])
 def laundrySchedule():
-    usr = request.form['usr']
-    pwd = request.form['pwd']
+    user = request.form["user"]
+    pwd = request.form["password"]
     return jsonify(
-        status = 'success',
-        data = getLaundryBookings(usr, pwd),
-        mimetype = 'application/json'
+        status = "success",
+        data = aptus.getLaundryBookings(user, pwd),
+        mimetype = "application/json"
     )
 
 ## fetches x closest machines available to book
 ## params:
 ##    usr - username (chs mina sidor) 
 ##    pwd - password (chs mina sidor)
-##    nom - number of available machines to display (OPTIONAL, default is 10)
+##    num - number of available machines to display (OPTIONAL, default is 10)
 ##
 ## result:
 ##    JSON string containing available machines and their associated data.
-@app.route('/api/v1/laundry/available', methods=['GET'])
+@app.route("/api/v1/laundry/available", methods=["GET"])
 def AvailableMachines():
-    usr = request.form['usr']
-    pwd = request.form['pwd']
-    nom = request.form['x']
+    user = request.form["user"]
+    pwd = request.form["password"]
+    num = request.form["num"]
     return jsonify(
-        status = 'success',
-        data = getAvailableMachines(usr, pwd),
-        mimetype = 'application/json'
+        status = "success",
+        data = aptus.getAvailableMachines(user, pwd, num),
+        mimetype = "application/json"
     )
 
 ## books given laundry machine 
 ## params:
 ##    usr  - username (chs mina sidor) 
 ##    pwd  - password (chs mina sidor)
-##    grp  - group id (see available_machines.json)    
-##    pss  - booking pass number (?)
-##    date - starting date for when to book machine (ISO xx-xx-xx)
+##    grp  -     
+##    date - starting date for when to book machine (ISO YYYY-MM-DD)
 ##
 ## result:
 ##    JSON string containing a success or failure 
-@app.route('/api/v1/laundry/book', methods=['POST'])
+@app.route("/api/v1/laundry/book", methods=["POST"])
 def laundryBook():
-    usr = request.form['usr']
-    pwd = request.form['pwd']
-    grp = request.form['grp']
-    pss = request.form['pss']
-    date = request.form['date']
+    user = request.form["user"]
+    pwd = request.form["password"]
+    bookingGrpNo = request.form["bookingGroupNo"]
+    passNo = request.form["passNo"]
+    passDate = request.form["passDate"]
     return jsonify(
-        status = 'success',
-        data = bookMachine(usr, pwd, grp, pss, date),
-        mimetype = 'application/json'
+        status = "success",
+        data = aptus.bookMachine(user, pwd, bookingGrpNo, passNo, passDate),
+        mimetype = "application/json"
     )
+
+
+## TODOS
 
 ## cancels a booking
 ## params:
@@ -91,11 +91,6 @@ def laundryBook():
 ##
 ## result:
 ##    JSON string containing a success or failure
-@app.route('/api/v1/laundry/cancel', methods=['POST'])
+@app.route("/api/v1/laundry/cancel", methods=["POST"])
 def laundryCancel():
     return 0
-
-
-@app.route('/test')
-def test():
-    return 'helloworld'
