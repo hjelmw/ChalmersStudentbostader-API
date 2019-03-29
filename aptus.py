@@ -70,14 +70,14 @@ def getAvailableMachines(user, pwd, num):
     available_machines = []
     for card in booking_cards:
         temp = {}
-        temp["time"] = card.xpath(".//div[1]/text()")
-        temp["date"] = card.xpath(".//div[2]/text()")
-        temp["laundry room"] = card.xpath(".//div[4]/text()")
-        temp["street"] = card.xpath(".//div[5]/text()")
+        temp["time"] = card.xpath(".//div[1]/text()")[0][18:-14]
+        temp["date"] = card.xpath(".//div[2]/text()")[0][18:-14]
+        temp["laundry room"] = card.xpath(".//div[4]/text()")[0][18:]
+        temp["street"] = card.xpath(".//div[5]/text()")[0][18:]
         
         # misc info needed to book, located in URL string
         # regex parses out parameters
-        misc = card.xpath(".//button/@onclick")[0][10:-16]
+        misc = card.xpath(".//button/@onclick")[0][10:-17]
         for misc_item in re.findall(r"(\?|\&)([^=]+)\=([^&]+)",misc):
             temp[misc_item[1]] = misc_item[2]
 
