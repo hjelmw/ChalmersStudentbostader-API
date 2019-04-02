@@ -3,6 +3,8 @@ import aptus
 
 app = Flask(__name__)
 
+
+
 ## opens one of the doors controlled by Aptusport
 ## params: 
 ##    usr- username (chs mina sidor) 
@@ -16,11 +18,9 @@ def unlock():
     user = request.form["user"]
     pwd = request.form["password"]
     door_name = request.form["door"]
-    return jsonify(
-        status = "success",
-        data = aptus.unlockDoor(user, pwd, door_name), 
-        mimetype = "application/json"
-    )
+    return jsonify(aptus.unlockDoor(user, pwd, door_name))
+
+
 
 ## lists booked machines along with dates from mina sidor
 ## params:
@@ -33,11 +33,9 @@ def unlock():
 def laundrySchedule():
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(
-        status = "success",
-        data = aptus.getLaundryBookings(user, pwd),
-        mimetype = "application/json"
-    )
+    return jsonify(aptus.getLaundryBookings(user, pwd))
+
+
 
 ## fetches x closest machines available to book
 ## params:
@@ -52,11 +50,9 @@ def AvailableMachines():
     user = request.form["user"]
     pwd = request.form["password"]
     num = request.form["num"]
-    return jsonify(
-        status = "success",
-        data = aptus.getAvailableMachines(user, pwd, num),
-        mimetype = "application/json"
-    )
+    return jsonify(aptus.getAvailableMachines(user, pwd, num))
+
+
 
 ## books given laundry machine 
 ## params:
@@ -81,8 +77,7 @@ def laundryBook():
     )
 
 
-## TODOS
-
+## TODO implement
 ## cancels a booking
 ## params:
 ##    usr - username (chs mina sidor)
