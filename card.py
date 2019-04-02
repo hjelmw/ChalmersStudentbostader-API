@@ -1,6 +1,19 @@
 import lxml.html
 import re
 
+## This class parses an HTML document, returning a JSON-formatted string with the info requested.
+##
+## arguments: 
+##    HTML_OBJ - HTML document
+##    sel - specify which page you gave the constructor (True for active bookings, False for available machines)
+##    *argv - what do you want returned in the JSON-string ex Card(.., .., "timestamp", "machine_id", "building")
+##
+## returns:
+##    JSON-string of the following format:
+##    {
+##    "data" : {...},
+##    "status" : success/error,
+##    }
 class Card:
     card_obj = []
 
