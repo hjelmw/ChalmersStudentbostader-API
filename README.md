@@ -1,7 +1,35 @@
 # chs-studentbostader-api
-A simple and very lightweight solution for accesing the different services found on [Chalmers](https://www.chalmersstudentbostader.se/) Studentbostäder mina sidor through a REST API. Its purpose is to simplify the creation of apps and services by wrapping around the clunky GUI found on the website as well as the closed source API and hardware provided by Aptus Assa Abloy used to book laundry rooms, open doors, check status of rent etc. 
+A simple REST-API for wrapping around the services for tenants of Chalmers Studentbostäder [mina sidor](https://www.chalmersstudentbostader.se/min-bostad/). 
 
-# Roadmap
- * Open front doors of buildings
- * Book laundry rooms
- * Change personal info
+The API is built on the microframework [Flask](http://flask.pocoo.org/) and uses a mix of web scraping and API calls to a "hidden" REST API maintaned by Aptusport.
+
+# Installation
+Install Flask framework and dependencies
+```
+pip install -U Flask
+pip install requests lxml
+```
+Start app with
+```
+FLASK_APP=app.py
+flask run
+```
+Server will start on `localhost:5000` See Usage for example requests
+
+
+# Usage
+TODO Add Postman Collection
+
+# Finished features
+#### Doors
+  * Open front doors of buildings operated by Aptusport and available on [mina sidor](https://www.chalmersstudentbostader.se/min-bostad/)🔑🚪
+ 
+#### Laundry
+ * Book a laundry room
+ * View your current laundry schedule
+ * View X amount of closest available laundry times
+
+# In progress
+ * Cancel a scheduled laundry booking
+ * View rent invoices
+ * View and change tenant info (phone number, email etc).
