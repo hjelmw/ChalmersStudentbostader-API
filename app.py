@@ -4,7 +4,28 @@ import aptus
 app = Flask(__name__)
 
 
-
+## default route
+## TODO implement
+@app.route('/<path:path>')
+def tryLogin(path):
+    user = request.form["user"]
+    passwd = request.form["password"]
+    
+    ##TODO add login()
+    check_login = aptus.login(usr, passwd)
+    
+    if(check_login == "error"):
+        return {
+            "status" : "error",
+            "data" : {
+                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
+            }
+        }
+    
+    return redirect(url_for(path))
+    
+    
+    
 ## opens one of the doors controlled by Aptusport
 ## params: 
 ##    usr- username (chs mina sidor) 
@@ -18,7 +39,7 @@ def unlock():
     user = request.form["user"]
     pwd = request.form["password"]
     door_name = request.form["door"]
-    return jsonify(aptus.unlockDoor(user, pwd, door_name))
+    return jsonify(aptus.unlockDoor(user, pwd, door_name), mimetype = "application/json")
 
 
 
@@ -33,7 +54,7 @@ def unlock():
 def laundrySchedule():
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.getLaundryBookings(user, pwd))
+    return jsonify(aptus.getLaundryBookings(user, pwd), mimetype = "application/json")
 
 
 
@@ -50,7 +71,7 @@ def AvailableMachines():
     user = request.form["user"]
     pwd = request.form["password"]
     num = request.form["num"]
-    return jsonify(aptus.getAvailableMachines(user, pwd, num))
+    return jsonify(aptus.getAvailableMachines(user, pwd, num), mimetype = "application/json")
 
 
 
