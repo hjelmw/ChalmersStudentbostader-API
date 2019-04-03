@@ -12,6 +12,12 @@ session = requests.Session()
 
 base_url =  "www.chalmersstudentbostader.se"
 
+
+## maybe remove
+def chsLogin(usr, pwd):
+    login_response = session.post("https://" + base_url + "/wp-login.php", data = {"log" : user, "pwd" : pwd})
+    return "error" if login_response.url[-9:] == "err=login" else login_response
+
 ## helper function, returns the URL for aptusport or laundry services
 ## return format: <baseURL>?module=<Lock|Booking>&customerName=<Customer>&timestamp=<Timestamp>&hash=<Hash>
 def getAptusUrl(user, pwd, sel):
@@ -34,7 +40,7 @@ def unlockDoor(user, pwd, door_name):
     unlock_url = getAptusUrl(user, pwd, True)
     if(unlock_url == "error"): 
         return {
-            "status" : "error",
+            "status" : "failure",
             "data" : {
                 "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
             }
@@ -58,7 +64,7 @@ def getLaundryBookings(user, pwd):
     laundry_url = getAptusUrl(user, pwd, False)
     if(laundry_url == "error"): 
         return {
-            "status" : "error",
+            "status" : "failure",
             "data" : {
                 "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
             }
@@ -74,7 +80,7 @@ def getAvailableMachines(user, pwd, num):
     laundry_url = getAptusUrl(user, pwd, False)
     if(laundry_url == "error"): 
         return {
-            "status" : "error",
+            "status" : "failure",
             "data" : {
                 "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
             }
@@ -92,7 +98,7 @@ def bookMachine(user, pwd, bookingGrpNo, passNo, passDate):
     laundry_url = getAptusUrl(user, pwd, False)
     if(laundry_url == "error"): 
         return {
-            "status" : "error",
+            "status" : "failure",
             "data" : {
                 "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
             }

@@ -1,31 +1,19 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect, url_for
+from flask_caching import Cache
 import aptus
 
 app = Flask(__name__)
+cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
+
+## for Flask-Cache
+## generates cache key based on user and password in form-data of request
+def __make_cache_key(*args, **kwargs):
+    path = request.path
+    args = str(hash(frozenset(request.form["user"] + request.form["password"])))
+    return (path + args).encode('utf-8')
 
 
-## default route
-## TODO implement
-@app.route('/<path:path>')
-def tryLogin(path):
-    user = request.form["user"]
-    passwd = request.form["password"]
-    
-    ##TODO add login()
-    check_login = aptus.login(usr, passwd)
-    
-    if(check_login == "error"):
-        return {
-            "status" : "error",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
-    
-    return redirect(url_for(path))
-    
-    
-    
+
 ## opens one of the doors controlled by Aptusport
 ## params: 
 ##    usr- username (chs mina sidor) 
@@ -34,12 +22,11 @@ def tryLogin(path):
 ##
 ## result: 
 ##    JSON string containing a success or failure
-@app.route("/api/v1/door/unlock", methods=["POST"])
+@app.route("/api/v1/door/unlock/<door_name>", methods=["POST"])
 def unlock():
     user = request.form["user"]
     pwd = request.form["password"]
-    door_name = request.form["door"]
-    return jsonify(aptus.unlockDoor(user, pwd, door_name), mimetype = "application/json")
+    return jsonify(aptus.unlockDoor(user, pwd, door_name))
 
 
 
@@ -51,10 +38,11 @@ def unlock():
 ## result:
 ##    JSON string containing booked laundry rooms
 @app.route("/api/v1/laundry/schedule", methods=["GET"])
+@cache.cached(timeout=60, key_prefix=__make_cache_key)
 def laundrySchedule():
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.getLaundryBookings(user, pwd), mimetype = "application/json")
+    return jsonify(aptus.getLaundryBookings(user, pwd))
 
 
 
@@ -66,12 +54,13 @@ def laundrySchedule():
 ##
 ## result:
 ##    JSON string containing available machines and their associated data.
-@app.route("/api/v1/laundry/available", methods=["GET"])
-def AvailableMachines():
+@app.route("/api/v1/laundry/available/<num>", defaults={"num" : "1"}, methods=["GET"])
+@cache.memoize(timeout=60)
+def AvailableMachines(num):
     user = request.form["user"]
     pwd = request.form["password"]
-    num = request.form["num"]
-    return jsonify(aptus.getAvailableMachines(user, pwd, num), mimetype = "application/json")
+    print(num)
+    return jsonify(aptus.getAvailableMachines(user, pwd, num))
 
 
 
@@ -84,7 +73,7 @@ def AvailableMachines():
 ##
 ## result:
 ##    JSON string containing a success or failure 
-@app.route("/api/v1/laundry/book", methods=["POST"])
+@app.route("/api/v1/laundry/book/", methods=["POST"])
 def laundryBook():
     user = request.form["user"]
     pwd = request.form["password"]
@@ -109,4 +98,9 @@ def laundryBook():
 ##    JSON string containing a success or failure
 @app.route("/api/v1/laundry/cancel", methods=["POST"])
 def laundryCancel():
+
+    #clear cache
+    cache.delete_memoized("test")
     return 0
+
+
