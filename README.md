@@ -7,6 +7,7 @@ The API is built on the microframework [Flask](http://flask.pocoo.org/) and uses
 Install Flask framework and dependencies
 ```
 pip install -U Flask
+pip install -U Flask-Caching
 pip install requests lxml
 ```
 Start app with
