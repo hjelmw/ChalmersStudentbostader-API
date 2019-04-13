@@ -22,33 +22,40 @@ class Card:
 
         temp = {}
         for arg in argv:
-
             if(arg == "time"):
                 temp["time"] = card.xpath(".//div[1]/text()")[0][18:-14]
 
             elif(arg == "day"):
-                temp["day"] = card.xpath(".//div[2]/text()")
+                temp["day"] = card.xpath(".//div[2]/text()")[0][22:-18]
 
             elif(arg == "date"):
                 temp["date"] = card.xpath(".//div[2]/text()")[0][18:-14]
 
             elif(arg == "street"):
-                temp["street"] = card.xpath(".//div[5]/text()")[0][18:]
+                index = 22 if sel == 1 else 18
+                temp["street"] = card.xpath(".//div[5]/text()")[0][index:]
 
             elif(arg == "duration"):
-                temp["duration"] = card.xpath(".//div[1]/text()")
+                temp["duration"] = card.xpath(".//div[1]/text()")[0][22:-18]
 
             elif(arg == "machines"):
-                temp["machines"] = card.xpath(".//div[4]/text()")
+                temp["machines"] = card.xpath(".//div[4]/text()")[0][22:]
 
             elif(arg == "machine_id"):
-                temp["machine_id"] = card.xpath("")
+                temp["machine_id"] = card.xpath(".//button/@id")[0]
 
             elif(arg == "laundry_room"):
                 temp["laundry_room"] = card.xpath(".//div[4]/text()")[0][18:]
 
+            elif(arg == "door"):
+                temp["door"] = card.xpath(".//div/span/text()")
+
+            elif(arg == "door_id"):
+                #rgx_id = re.findall(r"/\(([^)]+)\)/",card.xpath(".//button/@onclick"))
+                temp["door_id"] = card.xpath(".//button/@onclick")
+
             # if /laundry/available
-            elif(arg == "misc" and not sel):
+            elif(arg == "misc" and sel == 2):
                 misc = card.xpath(".//button/@onclick")[0][10:-17]
                 for misc_item in re.findall(r"(\?|\&)([^=]+)\=([^&]+)",misc):
                     temp[misc_item[1]] = misc_item[2]
@@ -60,13 +67,18 @@ class Card:
     def __init__(self, HTML_OBJ, sel, *argv):        
         self.card_obj = []
 
-        # true getbooking false getavailable
+        # 0 - getAvailableDoors
+        # 1 - getLaundryBookings
+        # 2 - getAvailableMachines
         try:
             html_obj = lxml.html.fromstring(HTML_OBJ.content)
-            if(sel):
+            if(sel == 0):
+                booking_cards = html_obj.xpath("/html/body/div/section/section/div")
+            elif(sel == 1):
                 booking_cards = html_obj.xpath("/html/body/div/section/div[1]/div[1]/div[position()>1]")
-            else:
+            elif(sel == 2):
                 booking_cards = html_obj.xpath("/html/body/div/section/div/div")
+            
             # extract arguments from HTML object
             for card in booking_cards:
                 self.__parseCard(card, sel, argv)

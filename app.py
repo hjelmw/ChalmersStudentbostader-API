@@ -8,11 +8,10 @@ cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
 ## for Flask-Cache
 ## generates cache key based on user and password in form-data of request
 def __make_cache_key(*args, **kwargs):
-    path = request.path
-    args = str(hash(frozenset(request.form["user"] + request.form["password"])))
-    return (path + args).encode('utf-8')
+    args = str(hash(request.form["user"] + request.form["password"]))
+    return (args).encode("utf-8")
 
-
+############################## FLASK ROUTES ##############################
 
 ## opens one of the doors controlled by Aptusport
 ## params: 
@@ -23,11 +22,26 @@ def __make_cache_key(*args, **kwargs):
 ## result: 
 ##    JSON string containing a success or failure
 @app.route("/api/v1/door/unlock/<door_name>", methods=["POST"])
-def unlock():
+def unlock(door_name):
     user = request.form["user"]
     pwd = request.form["password"]
     return jsonify(aptus.unlockDoor(user, pwd, door_name))
 
+
+
+## lists doors that the user can unlock along with their IDs
+## params: 
+##    usr- username (chs mina sidor) 
+##    pwd - password (chs mina sidor)
+##
+## result: 
+##    JSON string containing available doors
+@app.route("/api/v1/door/available", methods=["GET"])
+@cache.cached(timeout=60)
+def availableDoors():
+    user = request.form["user"]
+    pwd = request.form["password"]
+    return jsonify(aptus.getAvailableDoors(user, pwd))
 
 
 ## lists booked machines along with dates from mina sidor
@@ -54,12 +68,11 @@ def laundrySchedule():
 ##
 ## result:
 ##    JSON string containing available machines and their associated data.
-@app.route("/api/v1/laundry/available/<num>", defaults={"num" : "1"}, methods=["GET"])
-@cache.memoize(timeout=60)
+@app.route("/api/v1/laundry/available/<num>", methods=["GET"])
+@cache.cached(timeout=60)
 def AvailableMachines(num):
     user = request.form["user"]
     pwd = request.form["password"]
-    print(num)
     return jsonify(aptus.getAvailableMachines(user, pwd, num))
 
 
@@ -68,39 +81,36 @@ def AvailableMachines(num):
 ## params:
 ##    usr  - username (chs mina sidor) 
 ##    pwd  - password (chs mina sidor)
-##    grp  -     
-##    date - starting date for when to book machine (ISO YYYY-MM-DD)
+##    bookingGroupNo  - Booking Group Number
+##    passNo  - Pass No
+##    passDate  - passDate (ISO YYYY-MM-DD)
 ##
 ## result:
 ##    JSON string containing a success or failure 
-@app.route("/api/v1/laundry/book/", methods=["POST"])
+@app.route("/api/v1/laundry/book", methods=["POST"])
 def laundryBook():
     user = request.form["user"]
     pwd = request.form["password"]
-    bookingGrpNo = request.form["bookingGroupNo"]
-    passNo = request.form["passNo"]
-    passDate = request.form["passDate"]
-    return jsonify(
-        status = "success",
-        data = aptus.bookMachine(user, pwd, bookingGrpNo, passNo, passDate),
-        mimetype = "application/json"
-    )
+    bookingGrpNo = request.args.get("bookingGroupNo")
+    passNo = request.args.get("passNo")
+    passDate = request.args.get("passDate")
+    cache.delete(__make_cache_key())
+    return jsonify(aptus.bookMachine(user, pwd, str(bookingGrpNo), str(passNo), str(passDate)))
+        
 
 
-## TODO implement
 ## cancels a booking
 ## params:
 ##    usr - username (chs mina sidor)
 ##    pwd - password (chs mina sidor)
-##    id of machine or timestamp
+##    machineId - id of machine or timestamp
 ##
 ## result:
 ##    JSON string containing a success or failure
-@app.route("/api/v1/laundry/cancel", methods=["POST"])
-def laundryCancel():
-
-    #clear cache
-    cache.delete_memoized("test")
-    return 0
-
+@app.route("/api/v1/laundry/cancel/<machine_id>", methods=["POST"])
+def laundryCancel(machine_id):
+    user = request.form["user"]
+    pwd = request.form["password"]
+    cache.delete_memoized(__make_cache_key())
+    return jsonify(aptus.unbookMachine(user, pwd, machine_id))
 
