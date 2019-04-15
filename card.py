@@ -48,11 +48,32 @@ class Card:
                 temp["laundry_room"] = card.xpath(".//div[4]/text()")[0][18:]
 
             elif(arg == "door"):
-                temp["door"] = card.xpath(".//div/span/text()")
+                temp["door"] = card.xpath(".//div/span/text()")[0]
 
             elif(arg == "door_id"):
-                #rgx_id = re.findall(r"/\(([^)]+)\)/",card.xpath(".//button/@onclick"))
-                temp["door_id"] = card.xpath(".//button/@onclick")
+                #extracts door id from function call. Ex UnlockEntranceDoor(123456)
+                rgx_door_id = re.search(r"\(([^)]+)\)",card.xpath(".//button/@onclick")[0]).group(1)
+                temp["door_id"] = rgx_door_id
+            
+            elif(arg == "invoice"):
+                temp["invoice"] = card.xpath(".//div[1]/h4/text()")[0]
+
+            elif(arg == "invoice_status"):
+                #sometimes the card contains multiple <span> tags so we join them together
+                temp["invoice_status"] =  "".join(card.xpath(".//div[2]/div/span/text()"))
+
+            elif(arg == "amount"):
+                temp["amount"] = card.xpath(".//dl[1]/dd/text()")[0]
+
+            elif(arg == "date_of_payment"):
+                temp["date_of_payment"] = card.xpath(".//dl[2]/dd/text()")[0]
+
+            elif(arg == "ocr"):
+                temp["ocr"] = card.xpath(".//dl[3]/dd/text()")[0]
+
+            elif(arg == "pdf_link"):
+                temp["pdf_link"] = card.xpath(".//div[3]/a/@href")[0]
+
 
             # if /laundry/available
             elif(arg == "misc" and sel == 2):
@@ -70,15 +91,18 @@ class Card:
         # 0 - getAvailableDoors
         # 1 - getLaundryBookings
         # 2 - getAvailableMachines
+        # 3 - getInvoiceList
         try:
-            html_obj = lxml.html.fromstring(HTML_OBJ.content)
+            html_obj = lxml.html.fromstring(HTML_OBJ)
             if(sel == 0):
-                booking_cards = html_obj.xpath("/html/body/div/section/section/div")
+                booking_cards = html_obj.xpath("/html/body/div/section/section/div[contains(@class, \"lockCard\")]")
             elif(sel == 1):
                 booking_cards = html_obj.xpath("/html/body/div/section/div[1]/div[1]/div[position()>1]")
             elif(sel == 2):
                 booking_cards = html_obj.xpath("/html/body/div/section/div/div")
-            
+            elif(sel == 3):
+                booking_cards = html_obj.xpath(".//div[contains(@class,\"AviListItem\")]/div/div/div/div/div")
+
             # extract arguments from HTML object
             for card in booking_cards:
                 self.__parseCard(card, sel, argv)

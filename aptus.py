@@ -14,9 +14,11 @@ base_url =  "www.chalmersstudentbostader.se"
 
 
 ## maybe remove
-def chsLogin(usr, pwd):
-    login_response = session.post("https://" + base_url + "/wp-login.php", data = {"log" : usr, "pwd" : pwd})
+def chsLogin(user, pwd):
+    login_response = session.post("https://" + base_url + "/wp-login.php", data = {"log" : user, "pwd" : pwd})
     return "error" if login_response.url[-9:] == "err=login" else login_response
+
+
 
 ## helper function, returns the URL for aptusport or laundry services
 ## return format: <baseURL>?module=<Lock|Booking>&customerName=<Customer>&timestamp=<Timestamp>&hash=<Hash>
@@ -47,7 +49,7 @@ def unlockDoor(user, pwd, door_name):
         }
 
     session.get(unlock_url) 
-    res = session.get("https://apt-" + base_url + "/AptusPortal/Lock/UnlockEntryDoor/" + available_doors[door_name])
+    res = session.get("https://apt-" + base_url + "/AptusPortal/Lock/UnlockEntryDoor/" + door_name)
     return {
         "status" : "success",
         "data" : {
@@ -70,7 +72,7 @@ def getAvailableDoors(user, pwd):
         }
 
     res = session.get(unlock_url)
-    return card.Card(res, 0, "door", "door_id").getCard()
+    return card.Card(res.content, 0, "door", "door_id").getCard()
     
 
 
@@ -87,7 +89,7 @@ def getLaundryBookings(user, pwd):
     
     res = session.get(laundry_url)
     #return card.Card(res, True, "timestamp", "duration", "day", "machines", "machine_id", "street").getCard()
-    return card.Card(res, 1, "timestamp", "duration", "day", "machines", "street", "machine_id").getCard()
+    return card.Card(res.content, 1, "timestamp", "duration", "day", "machines", "street", "machine_id").getCard()
 
 
 
@@ -104,8 +106,26 @@ def getAvailableMachines(user, pwd, num):
        
     session.get(laundry_url)
     res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num)
-    return card.Card(res, 2, "time","date", "laundry_room", "street", "misc").getCard()
+    return card.Card(res.content, 2, "time","date", "laundry_room", "street", "misc").getCard()
 
+
+def getInvoiceList(user, pwd):
+    login_response = chsLogin(user, pwd)
+    
+    if(login_response == "error"):
+        return {
+            "status" : "failure",
+            "data" : {
+                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
+            }
+        }
+
+    res = session.get("https://" + base_url + "/widgets/?callback=?&widgets[]=avilista")
+    
+    avilista_html = json.loads(res.content[2:-2])["html"]["avilista"]
+
+    # decides between aptusport or laundry services
+    return card.Card(avilista_html, 3, "invoice", "invoice_status", "amount", "date_of_payment", "ocr", "pdf_link").getCard()
 
 
 ## books a machine
@@ -145,3 +165,5 @@ def unbookMachine(user, pwd, machine_id):
     session.get(laundry_url)
 
     return session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Unbook/" + machine_id)
+
+

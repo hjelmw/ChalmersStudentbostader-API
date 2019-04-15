@@ -114,3 +114,19 @@ def laundryCancel(machine_id):
     cache.delete_memoized(__make_cache_key())
     return jsonify(aptus.unbookMachine(user, pwd, machine_id))
 
+
+## Retrieves invoices (hyresavi)
+## params:
+##    usr - username (chs mina sidor)
+##    pwd - password (chs mina sidor)
+## 
+##
+## result:
+##    JSON string containing paid and unpaid invoices
+@app.route("/api/v1/invoice/list", methods=["GET"])
+@cache.cached(timeout=60, key_prefix=__make_cache_key)
+def invoiceList():
+    user = request.form["user"]
+    pwd = request.form["password"]
+    return jsonify(aptus.getInvoiceList(user, pwd))
+    
