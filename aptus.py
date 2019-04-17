@@ -140,15 +140,14 @@ def bookMachine(user, pwd, bookingGrpNo, passNo, passDate):
         }
 
     session.get(laundry_url)
+    res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Book?" + "passNo="+passNo+"&passDate="+passDate+"&bookingGroupId="+bookingGrpNo)
 
-    ## TODO scrape res for success or failure
-    res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Book?"+
-        "passNo="+passNo+"&passDate="+passDate+"&bookingGroupId="+bookingGrpNo)
-
+    #scrape result of booking
+    book_res = re.search(r"(?<=FeedbackDialog\(\').[^']*", lxml.html.fromstring(res.content).xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]/text()")[0]).group()
     return {
-            "status" : "success", 
+            "status" : "success",
             "data" : {
-                "message" : "Pass bokat"
+                "message" : book_res
             }
         }
 
@@ -163,7 +162,13 @@ def unbookMachine(user, pwd, machine_id):
         }
 
     session.get(laundry_url)
+    res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Unbook/" + str(machine_id))
 
-    return session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Unbook/" + machine_id)
-
-
+    #scrape result of unbooking machine
+    unbook_res = re.search(r"(?<=FeedbackDialog\(\').[^']*", lxml.html.fromstring(res.content).xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]/text()")[0]).group()
+    return {
+            "status" : "success", 
+            "data" : {
+                "message" : unbook_res
+            }
+        }
