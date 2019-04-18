@@ -22,11 +22,11 @@ Server will start on `localhost:5000` See Usage for example requests
 TODO Add Postman Collection
 
 # Finished features
-#### Doors
-  * Open front doors of buildings operated by Aptusport and available on [mina sidor](https://www.chalmersstudentbostader.se/min-bostad/)🔑🚪
+#### Doors 🔑🚪
+  * Open front doors of buildings operated by Aptusport and available on [mina sidor](https://www.chalmersstudentbostader.se/min-bostad/)
   * View available doors to open
  
-#### Laundry
+#### Laundry 🧺
  * Book a laundry room
  * Cancel a scheduled laundry machine booking
  * View your current laundry schedule
@@ -37,3 +37,4 @@ TODO Add Postman Collection
 
 # In progress
  * View and change tenant info (phone number, email etc).
+ * View available laundry times on specific date
