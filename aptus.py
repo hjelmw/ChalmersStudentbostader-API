@@ -4,18 +4,11 @@ import requests
 import json
 import re
 
-with open("doors.json") as file:
-    available_doors = json.load(file)
-
 session = requests.Session()
-
-
-base_url =  "www.chalmersstudentbostader.se"
-
 
 ## maybe remove
 def chsLogin(user, pwd):
-    login_response = session.post("https://" + base_url + "/wp-login.php", data = {"log" : user, "pwd" : pwd})
+    login_response = session.post("https://www.chalmersstudentbostader.se/wp-login.php", data = {"log" : user, "pwd" : pwd})
     return "error" if login_response.url[-9:] == "err=login" else login_response
 
 
@@ -23,15 +16,15 @@ def chsLogin(user, pwd):
 ## helper function, returns the URL for aptusport or laundry services
 ## return format: <baseURL>?module=<Lock|Booking>&customerName=<Customer>&timestamp=<Timestamp>&hash=<Hash>
 def getAptusUrl(user, pwd, sel):
-    login_response = session.post("https://" + base_url + "/wp-login.php", data = {"log" : user, "pwd" : pwd})
+    login_response = session.post("https://www.chalmersstudentbostader.se/wp-login.php", data = {"log" : user, "pwd" : pwd})
     
     if(login_response.url[-9:] == "err=login"):
         return "error"
 
-    r = session.get("https://" + base_url + "/widgets/?callback=?&widgets[]=aptuslogin@APTUSPORT&widgets[]=aptuslogin")
+    r = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=aptuslogin@APTUSPORT&widgets[]=aptuslogin")
     s = json.loads(r.text[2:-2])
 
-    # decides between aptusport or laundry services
+    # selects Aptusport URL or Laundry URL.
     which_aptus = "aptuslogin@APTUSPORT" if bool(sel) else "aptuslogin"
     return json.loads(str(s["data"][which_aptus]["objekt"][0]).replace('\'',"\""))["aptusUrl"]
 
@@ -49,7 +42,7 @@ def unlockDoor(user, pwd, door_name):
         }
 
     session.get(unlock_url) 
-    res = session.get("https://apt-" + base_url + "/AptusPortal/Lock/UnlockEntryDoor/" + door_name)
+    res = session.get("https://apt- www.chalmersstudentbostader.se/AptusPortal/Lock/UnlockEntryDoor/" + door_name)
     return {
         "status" : "success",
         "data" : {
@@ -105,13 +98,14 @@ def getAvailableMachines(user, pwd, num):
         }
        
     session.get(laundry_url)
-    res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num)
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num)
     return card.Card(res.content, 2, "time","date", "laundry_room", "street", "misc").getCard()
 
 
+
+# returns a list of invoices, amounts, status of payment, when to pay etc
 def getInvoiceList(user, pwd):
     login_response = chsLogin(user, pwd)
-    
     if(login_response == "error"):
         return {
             "status" : "failure",
@@ -120,12 +114,13 @@ def getInvoiceList(user, pwd):
             }
         }
 
-    res = session.get("https://" + base_url + "/widgets/?callback=?&widgets[]=avilista")
+    res = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=avilista")
     
     avilista_html = json.loads(res.content[2:-2])["html"]["avilista"]
 
     # decides between aptusport or laundry services
     return card.Card(avilista_html, 3, "invoice", "invoice_status", "amount", "date_of_payment", "ocr", "pdf_link").getCard()
+
 
 
 ## books a machine
@@ -140,16 +135,11 @@ def bookMachine(user, pwd, bookingGrpNo, passNo, passDate):
         }
 
     session.get(laundry_url)
-    res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Book?" + "passNo="+passNo+"&passDate="+passDate+"&bookingGroupId="+bookingGrpNo)
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/Book?passNo="+passNo+"&passDate="+passDate+"&bookingGroupId="+bookingGrpNo)
+    # scrape result of booking machine
+    return card.Card(res.content, 4, "booking_result").getCard()
 
-    #scrape result of booking
-    book_res = re.search(r"(?<=FeedbackDialog\(\').[^']*", lxml.html.fromstring(res.content).xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]/text()")[0]).group()
-    return {
-            "status" : "success",
-            "data" : {
-                "message" : book_res
-            }
-        }
+
 
 def unbookMachine(user, pwd, machine_id):
     laundry_url = getAptusUrl(user, pwd, False)
@@ -162,13 +152,6 @@ def unbookMachine(user, pwd, machine_id):
         }
 
     session.get(laundry_url)
-    res = session.get("https://apt-" + base_url + "/AptusPortal/CustomerBooking/Unbook/" + str(machine_id))
-
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/Unbook/" + machine_id)
     #scrape result of unbooking machine
-    unbook_res = re.search(r"(?<=FeedbackDialog\(\').[^']*", lxml.html.fromstring(res.content).xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]/text()")[0]).group()
-    return {
-            "status" : "success", 
-            "data" : {
-                "message" : unbook_res
-            }
-        }
+    return card.Card(res.content, 4, "unbooking_result").getCard()

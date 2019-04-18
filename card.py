@@ -74,8 +74,11 @@ class Card:
             elif(arg == "pdf_link"):
                 temp["pdf_link"] = card.xpath(".//div[3]/a/@href")[0]
 
+            elif(arg == "booking_result" or arg == "unbooking_result"):
+                temp[arg] = re.search(r"(?<=FeedbackDialog\(\').[^']*", card.xpath(".//text()")[0]).group()
 
             # if /laundry/available
+            # misc is booking pass related data. Extracted from url parameters.
             elif(arg == "misc" and sel == 2):
                 misc = card.xpath(".//button/@onclick")[0][10:-17]
                 for misc_item in re.findall(r"(\?|\&)([^=]+)\=([^&]+)",misc):
@@ -83,7 +86,7 @@ class Card:
 
         self.card_obj.append(temp)
         
-    ## HTML_OBJ needs to be HTML object for aptus/module=Booking or /module=Lock 
+    ## HTML_OBJ needs to be the HTML document for parsing to work
     ## args for parameters you want returned
     def __init__(self, HTML_OBJ, sel, *argv):        
         self.card_obj = []
@@ -92,6 +95,7 @@ class Card:
         # 1 - getLaundryBookings
         # 2 - getAvailableMachines
         # 3 - getInvoiceList
+        # 4 - BookMachine/UnbookMachine
         try:
             html_obj = lxml.html.fromstring(HTML_OBJ)
             if(sel == 0):
@@ -102,14 +106,28 @@ class Card:
                 booking_cards = html_obj.xpath("/html/body/div/section/div/div")
             elif(sel == 3):
                 booking_cards = html_obj.xpath(".//div[contains(@class,\"AviListItem\")]/div/div/div/div/div")
-
+            elif(sel == 4):
+                booking_cards = html_obj.xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]/text()")
+                #xpath resulted
+                if(not booking_cards):
+                    raise AptusResultException("Aptus booking/unbooking not succesfull")
+                  
+                
             # extract arguments from HTML object
             for card in booking_cards:
                 self.__parseCard(card, sel, argv)
             self.card_obj.append({"status": "success"})
+        
+        except AptusResultException as e:
+            self.card_obj = {"status": "error", "data" : {"message": " Make sure pass is not already taken or unbooked.", "details" : str(e)}}
         except Exception as e:
             self.card_obj = {"status": "error", "data" : {"message":"An error occured while parsing HTML object", "details" : str(e)}}
-
-
+        
+        
     def getCard(self):
         return self.card_obj
+
+
+#Exception class to handle errors with booking/unbooking
+class AptusResultException(Exception):
+    pass
