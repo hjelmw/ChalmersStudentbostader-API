@@ -11,10 +11,16 @@ def __make_cache_key(*args, **kwargs):
     args = str(hash(request.form["user"] + request.form["password"]))
     return (args).encode("utf-8")
 
+############################# Error Routes #############################
+@app.errorhandler(404)
+def pageNotFound():
+    return jsonify(status = "error", data="404. The route was not found", route=request.path)
 
+@app.errorhandler(500)
+def InternalServerError():
+    return jsonify(status="error", data="500. An internal server error occured.")
 
-
-############################## FLASK ROUTES ##############################
+############################## API Routes ##############################
 
 ## opens one of the doors controlled by Aptusport
 ## params: 
@@ -40,11 +46,12 @@ def unlock(door_name):
 ## result: 
 ##    JSON string containing available doors
 @app.route("/api/v1/door/available", methods=["GET"])
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, key_prefix=__make_cache_key())
 def availableDoors():
     user = request.form["user"]
     pwd = request.form["password"]
     return jsonify(aptus.getAvailableDoors(user, pwd))
+
 
 
 ## lists booked machines along with dates from mina sidor
