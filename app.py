@@ -17,15 +17,15 @@ def pageNotFound():
     return jsonify(status = "error", data="404. The route was not found", route=request.path)
 
 @app.errorhandler(500)
-def InternalServerError():
+def internalServerError():
     return jsonify(status="error", data="500. An internal server error occured.")
 
 ############################## API Routes ##############################
 
 ## opens one of the doors controlled by Aptusport
 ## params: 
-##    usr- username (chs mina sidor) 
-##    pwd - password (chs mina sidor)
+##    user- username (chs mina sidor) 
+##    password - password (chs mina sidor)
 ##    id of door to unlock (see available_doors.json)
 ##
 ## result: 
@@ -40,8 +40,8 @@ def unlock(door_name):
 
 ## lists doors that the user can unlock along with their IDs
 ## params: 
-##    usr- username (chs mina sidor) 
-##    pwd - password (chs mina sidor)
+##    user- username (chs mina sidor) 
+##    password - password (chs mina sidor)
 ##
 ## result: 
 ##    JSON string containing available doors
@@ -56,8 +56,8 @@ def availableDoors():
 
 ## lists booked machines along with dates from mina sidor
 ## params:
-##    usr - username (chs mina sidor) 
-##    pwd - password (chs mina sidor)
+##    user - username (chs mina sidor) 
+##    password - password (chs mina sidor)
 ##
 ## result:
 ##    JSON string containing booked laundry rooms
@@ -72,8 +72,8 @@ def laundrySchedule():
 
 ## fetches x closest machines available to book
 ## params:
-##    usr - username (chs mina sidor) 
-##    pwd - password (chs mina sidor)
+##    user - username (chs mina sidor) 
+##    password - password (chs mina sidor)
 ##    num - number of available machines to display (OPTIONAL, default is 10)
 ##
 ## result:
@@ -89,7 +89,7 @@ def AvailableMachines(num):
 
 ## books given laundry machine 
 ## params:
-##    usr  - username (chs mina sidor) 
+##    user  - username (chs mina sidor) 
 ##    pwd  - password (chs mina sidor)
 ##    bookingGroupNo  - Booking Group Number
 ##    passNo  - Pass No
@@ -111,8 +111,8 @@ def laundryBook():
 
 ## cancels a booking
 ## params:
-##    usr - username (chs mina sidor)
-##    pwd - password (chs mina sidor)
+##    user - username (chs mina sidor)
+##    password - password (chs mina sidor)
 ##    machineId - id of machine
 ##
 ## result:
@@ -127,8 +127,8 @@ def laundryCancel(machine_id):
 
 ## Retrieves invoices (hyresavi)
 ## params:
-##    usr - username (chs mina sidor)
-##    pwd - password (chs mina sidor)
+##    user - username (chs mina sidor)
+##    password - password (chs mina sidor)
 ## 
 ##
 ## result:
@@ -140,3 +140,18 @@ def invoiceList():
     pwd = request.form["password"]
     return jsonify(aptus.getInvoiceList(user, pwd))
     
+
+## Destroys cache of user. Used for debugging purposes
+## params:
+##    user - username (chs mina sidor)
+##    password - password (chs mina sidor)
+##
+##
+## result:
+##    Acknowledgement of destroyed cache
+@app.route("/api/v1/cache/destroy")
+def destroyCache():
+    user = request.form["user"]
+    pwd = request.form["password"] 
+    cache.delete_memoized(__make_cache_key)
+    return jsonify(status="success", data="Cache destroyed for user: " + __make_cache_key())
