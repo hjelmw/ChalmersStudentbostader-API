@@ -1,9 +1,13 @@
 from flask import Flask, jsonify, request, redirect, url_for
 from flask_caching import Cache
+from werkzeug.exceptions import HTTPException
 import aptus
 
 app = Flask(__name__)
+
+## simple for test/dev
 cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
+
 
 ## for Flask-Cache
 ## generates cache key based on user and password in form-data of request
@@ -13,19 +17,24 @@ def __make_cache_key(*args, **kwargs):
 
 
 
-
 ############################# Error Routes #############################
-@app.errorhandler(405)
-def notAllowed(error):
-    return jsonify(status = "error", data={"details": str(error),"message": "Are you using GET on a POST route?", "code": "405", "url":request.method + " " + request.path})
 
-@app.errorhandler(404)
-def pageNotFound(error):
-    return jsonify(status = "error", data={"details": str(error), "message": "Check route path", "code": "404", "url": request.method + " " + request.path})
+## returns custom JSON for common error codes
+@app.errorhandler(Exception)
+def handle_error(e):
+    code = 500
+    if isinstance(e, HTTPException):
+        code = e.code
+    return jsonify(status="error", error=str(e)), code
 
-@app.errorhandler(500)
-def internalServerError(error):
-    return jsonify(status="error", data={"details": str(error),"message": "Internal server error. Something went wrong", "code": "500", "url": request.method + " " + request.path})
+
+## for errorhandler
+## Override default exception with custom JSON
+from werkzeug.exceptions import default_exceptions
+for ex in default_exceptions:
+    app.register_error_handler(ex, handle_error)
+
+
 
 ############################## API Routes ##############################
 
