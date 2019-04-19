@@ -42,13 +42,23 @@ def unlockDoor(user, pwd, door_name):
         }
 
     session.get(unlock_url) 
-    res = session.get("https://apt- www.chalmersstudentbostader.se/AptusPortal/Lock/UnlockEntryDoor/" + door_name)
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/Lock/UnlockEntryDoor/" + door_name)
+    
+    open_res = json.loads(res.text)
+    if(not open_res["StatusText"]):
+        return {
+            "status" : "error",
+            "data" : {
+                "id" : door_name,
+                "message" : "Error. Could not unlock the door"
+            }
+        }    
+
     return {
         "status" : "success",
         "data" : {
-            "name" : door_name,
-            "id" : available_doors[door_name],
-            "aptus_response" : json.loads(res.text)
+            "id" : door_name,
+            "message" : open_res["StatusText"]
         }
     }
 
