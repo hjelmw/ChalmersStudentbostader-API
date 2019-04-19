@@ -8,17 +8,24 @@ cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
 ## for Flask-Cache
 ## generates cache key based on user and password in form-data of request
 def __make_cache_key(*args, **kwargs):
-    args = str(hash(request.form["user"] + request.form["password"]))
+    args = str(hash(request.form["user"] + request.form["password"] ))
     return (args).encode("utf-8")
 
+
+
+
 ############################# Error Routes #############################
+@app.errorhandler(405)
+def notAllowed(error):
+    return jsonify(status = "error", data={"details": str(error),"message": "Are you using GET on a POST route?", "code": "405", "url":request.method + " " + request.path})
+
 @app.errorhandler(404)
-def pageNotFound():
-    return jsonify(status = "error", data="404. The route was not found", route=request.path)
+def pageNotFound(error):
+    return jsonify(status = "error", data={"details": str(error), "message": "Check route path", "code": "404", "url": request.method + " " + request.path})
 
 @app.errorhandler(500)
-def internalServerError():
-    return jsonify(status="error", data="500. An internal server error occured.")
+def internalServerError(error):
+    return jsonify(status="error", data={"details": str(error),"message": "Internal server error. Something went wrong", "code": "500", "url": request.method + " " + request.path})
 
 ############################## API Routes ##############################
 
@@ -46,7 +53,7 @@ def unlock(door_name):
 ## result: 
 ##    JSON string containing available doors
 @app.route("/api/v1/door/available", methods=["GET"])
-@cache.cached(timeout=300, key_prefix=__make_cache_key())
+@cache.cached(timeout=300, key_prefix=__make_cache_key)
 def availableDoors():
     user = request.form["user"]
     pwd = request.form["password"]
@@ -139,6 +146,7 @@ def invoiceList():
     user = request.form["user"]
     pwd = request.form["password"]
     return jsonify(aptus.getInvoiceList(user, pwd))
+
     
 
 ## Destroys cache of user. Used for debugging purposes
@@ -153,5 +161,5 @@ def invoiceList():
 def destroyCache():
     user = request.form["user"]
     pwd = request.form["password"] 
-    cache.delete_memoized(__make_cache_key)
+    cache.delete_memoized(__make_cache_key())
     return jsonify(status="success", data="Cache destroyed for user: " + __make_cache_key())
