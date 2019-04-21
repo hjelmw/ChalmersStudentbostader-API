@@ -19,7 +19,43 @@ Server will start on `localhost:5000` See Usage for example requests
 
 
 # Usage
-TODO Add Postman Collection
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/c37165aed8d58936867b)
+
+### Example Request & Response
+```
+GET /api/v1/laundry/available/2
+Content-Type: application/json
+Body: 
+user=<user>
+password=<password>
+```
+```
+200 OK
+Content-Type: application/json
+Server: Werkzeug/0.15.2 Python/3.7.2
+Body:
+    {
+        "status": "success"
+    }
+    {
+        "bookingGroupId": "47",
+        "date": "SÖN 21 APR",
+        "laundry_room": "Tvättstuga 3",
+        "passDate": "2019-04-21",
+        "passNo": "7",
+        "street": "EB 84 Tvättstuga 1-5",
+        "time": "19:00-21:30"
+    },
+    {
+        "bookingGroupId": "49",
+        "date": "SÖN 21 APR",
+        "laundry_room": "Tvättstuga 5",
+        "passDate": "2019-04-21",
+        "passNo": "7",
+        "street": "EB 84 Tvättstuga 1-5",
+        "time": "19:00-21:30"
+    }
+```
 
 # Finished features
 #### Doors 🔑🚪
