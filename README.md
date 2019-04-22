@@ -19,6 +19,8 @@ Server will start on `localhost:5000` See Usage for example requests
 
 
 # Usage
+Check out available requests on Postman. You can view the [documentation](https://documenter.getpostman.com/view/6066375/S1EUtF9a) or click the button below to import the colletion to your own Postman app.
+
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/c37165aed8d58936867b)
 
 ### Example Request & Response
