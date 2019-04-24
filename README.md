@@ -36,27 +36,29 @@ password=<password>
 Content-Type: application/json
 Server: Werkzeug/0.15.2 Python/3.7.2
 Body:
-    {
-        "status": "success"
-    }
-    {
-        "bookingGroupId": "47",
-        "date": "SÖN 21 APR",
-        "laundry_room": "Tvättstuga 3",
-        "passDate": "2019-04-21",
-        "passNo": "7",
-        "street": "EB 84 Tvättstuga 1-5",
-        "time": "19:00-21:30"
-    },
-    {
-        "bookingGroupId": "49",
-        "date": "SÖN 21 APR",
-        "laundry_room": "Tvättstuga 5",
-        "passDate": "2019-04-21",
-        "passNo": "7",
-        "street": "EB 84 Tvättstuga 1-5",
-        "time": "19:00-21:30"
-    }
+{
+	"status": "success",
+	"data": {
+		"0": {
+			"bookingGroupId": "47",
+			"date": "SÖN 21 APR",
+			"laundry_room": "Tvättstuga 3",
+			"passDate": "2019-04-21",
+			"passNo": "7",
+			"street": "EB 84 Tvättstuga 1-5",
+			"time": "19:00-21:30"
+		},
+		"1": {
+			"bookingGroupId": "49",
+			"date": "SÖN 21 APR",
+			"laundry_room": "Tvättstuga 5",
+			"passDate": "2019-04-21",
+			"passNo": "7",
+			"street": "EB 84 Tvättstuga 1-5",
+			"time": "19:00-21:30"
+		}
+	}
+}
 ```
 
 # Finished features
