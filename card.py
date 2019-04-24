@@ -1,26 +1,28 @@
 import lxml.html
 import re
 
-## This class parses an HTML document, returning a JSON-formatted string with the info requested.
+## This class parses an HTML document, returning a dict with the info requested.
 ##
 ## arguments: 
 ##    HTML_OBJ - HTML document
 ##    sel - specify which page you gave the constructor (True for active bookings, False for available machines)
-##    *argv - what do you want returned in the JSON-string ex Card(.., .., "timestamp", "machine_id", "building")
+##    *argv - what do you want returned in the dict ex Card(.., .., "timestamp", "machine_id", "building")
 ##
-## returns:
-##    JSON-string of the following format:
+## getCard returns:
+##    dict of the following format:
 ##    {
 ##    "data" : {...},
 ##    "status" : success/error,
 ##    }
 class Card:
-    card_obj = []
+    card_obj = dict()
 
 
-    def __parseCard(self, card, sel, argv):
-
+    def __parse_card(self, card, i, sel, argv):
+        
+        # init temp dict. Will append to card_obj later
         temp = {}
+
         for arg in argv:
             if(arg == "time"):
                 temp["time"] = card.xpath(".//div[1]/text()")[0][18:-14]
@@ -42,7 +44,7 @@ class Card:
                 temp["machines"] = card.xpath(".//div[4]/text()")[0][22:]
 
             elif(arg == "machine_id"):
-                temp["machine_id"] = card.xpath(".//button/@id")[0]
+                temp["machine_id"] = int(card.xpath(".//button/@id")[0])
 
             elif(arg == "laundry_room"):
                 temp["laundry_room"] = card.xpath(".//div[4]/text()")[0][18:]
@@ -53,7 +55,7 @@ class Card:
             elif(arg == "door_id"):
                 #extracts door id from function call. Ex UnlockEntranceDoor(123456)
                 rgx_door_id = re.search(r"\(([^)]+)\)",card.xpath(".//button/@onclick")[0]).group(1)
-                temp["door_id"] = rgx_door_id
+                temp["door_id"] = int(rgx_door_id)
             
             elif(arg == "invoice"):
                 temp["invoice"] = card.xpath(".//div[1]/h4/text()")[0]
@@ -69,7 +71,7 @@ class Card:
                 temp["date_of_payment"] = card.xpath(".//dl[2]/dd/text()")[0]
 
             elif(arg == "ocr"):
-                temp["ocr"] = card.xpath(".//dl[3]/dd/text()")[0]
+                temp["ocr"] = int(card.xpath(".//dl[3]/dd/text()")[0])
 
             elif(arg == "pdf_link"):
                 temp["pdf_link"] = card.xpath(".//div[3]/a/@href")[0]
@@ -84,12 +86,13 @@ class Card:
                 for misc_item in re.findall(r"(\?|\&)([^=]+)\=([^&]+)",misc):
                     temp[misc_item[1]] = misc_item[2]
 
-        self.card_obj.append(temp)
+        # add temp dict to return value
+        self.card_obj["data"][i] = temp
         
     ## HTML_OBJ needs to be the HTML document for parsing to work
     ## args for parameters you want returned
     def __init__(self, HTML_OBJ, sel, *argv):        
-        self.card_obj = []
+        self.card_obj["data"] = {}
 
         # 0 - getAvailableDoors
         # 1 - getLaundryBookings
@@ -107,24 +110,25 @@ class Card:
             elif(sel == 3):
                 booking_cards = html_obj.xpath(".//div[contains(@class,\"AviListItem\")]/div/div/div/div/div")
             elif(sel == 4):
-                booking_cards = html_obj.xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]/text()")
-                #xpath resulted
+                booking_cards = html_obj.xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]")
+                #xpath empty means something went wrong 
                 if(not booking_cards):
                     raise AptusResultException("Aptus booking/unbooking not succesfull")
-                  
-                
-            # extract arguments from HTML object
+                    
+            i = 0
+            # extract arguments from HTML object and build dict
             for card in booking_cards:
-                self.__parseCard(card, sel, argv)
-            self.card_obj.append({"status": "success"})
+                self.__parse_card(card, i, sel, argv) 
+                i += 1
+            self.card_obj["status"] = "success"
         
         except AptusResultException as e:
-            self.card_obj = {"status": "error", "data" : {"message": " Make sure pass is not already taken or unbooked.", "details" : str(e)}}
+            self.card_obj = {"status": "error", "data" : {"message": " Make sure pass/machine exists, is not already taken or unbooked.", "details" : str(e)}}
         except Exception as e:
             self.card_obj = {"status": "error", "data" : {"message":"An error occured while parsing HTML object", "details" : str(e)}}
         
         
-    def getCard(self):
+    def get_card(self):
         return self.card_obj
 
 
