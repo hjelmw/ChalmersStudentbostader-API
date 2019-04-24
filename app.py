@@ -2,18 +2,22 @@ from flask import Flask, jsonify, request, redirect, url_for
 from flask_caching import Cache
 from werkzeug.exceptions import HTTPException
 import aptus
+import json
+
 
 app = Flask(__name__)
 
 ## simple for test/dev
+## maybe redis for prod?
 cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
 
 
 ## for Flask-Cache
 ## generates cache key based on user and password in form-data of request
 def __make_cache_key(*args, **kwargs):
-    args = str(hash(request.form["user"] + request.form["password"] ))
+    args = str(hash(request.form["user"] + request.form["password"]))
     return (args).encode("utf-8")
+
 
 
 
@@ -25,7 +29,7 @@ def handle_error(e):
     code = 500
     if isinstance(e, HTTPException):
         code = e.code
-    return jsonify(status="error", error=str(e)), code
+    return jsonify(status="error", code=code, error=str(e)), code
 
 
 ## for errorhandler
@@ -50,7 +54,7 @@ for ex in default_exceptions:
 def unlock(door_name):
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.unlockDoor(user, pwd, door_name))
+    return jsonify(aptus.unlock_door(user, pwd, door_name))
 
 
 
@@ -63,10 +67,10 @@ def unlock(door_name):
 ##    JSON string containing available doors
 @app.route("/api/v1/door/available", methods=["GET"])
 @cache.cached(timeout=300, key_prefix=__make_cache_key)
-def availableDoors():
+def available_doors():
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.getAvailableDoors(user, pwd))
+    return jsonify(aptus.get_available_doors(user, pwd))
 
 
 
@@ -79,10 +83,10 @@ def availableDoors():
 ##    JSON string containing booked laundry rooms
 @app.route("/api/v1/laundry/schedule", methods=["GET"])
 @cache.cached(timeout=60, key_prefix=__make_cache_key)
-def laundrySchedule():
+def laundry_schedule():
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.getLaundryBookings(user, pwd))
+    return jsonify(aptus.get_laundry_bookings(user, pwd))
 
 
 
@@ -96,10 +100,10 @@ def laundrySchedule():
 ##    JSON string containing available machines and their associated data.
 @app.route("/api/v1/laundry/available/<num>", methods=["GET"])
 @cache.cached(timeout=60)
-def AvailableMachines(num):
+def available_machines(num):
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.getAvailableMachines(user, pwd, num))
+    return jsonify(aptus.get_available_machines(user, pwd, num))
 
 
 
@@ -114,14 +118,14 @@ def AvailableMachines(num):
 ## result:
 ##    JSON string containing a success or failure 
 @app.route("/api/v1/laundry/book", methods=["POST"])
-def laundryBook():
+def laundry_book():
     user = request.form["user"]
     pwd = request.form["password"]
-    bookingGrpNo = request.args.get("bookingGroupNo")
-    passNo = request.args.get("passNo")
-    passDate = request.args.get("passDate")
+    booking_group_no = request.args.get("bookingGroupNo")
+    pass_no = request.args.get("passNo")
+    pass_date = request.args.get("passDate")
     cache.delete(__make_cache_key())
-    return jsonify(aptus.bookMachine(user, pwd, str(bookingGrpNo), str(passNo), str(passDate)))
+    return jsonify(aptus.book_machine(user, pwd, str(booking_group_no), str(pass_no), str(pass_date)))
         
 
 
@@ -134,29 +138,62 @@ def laundryBook():
 ## result:
 ##    JSON string containing a success or failure
 @app.route("/api/v1/laundry/unbook/<machine_id>", methods=["POST"])
-def laundryCancel(machine_id):
+def laundry_cancel(machine_id):
     user = request.form["user"]
     pwd = request.form["password"]
-    cache.delete_memoized(__make_cache_key())
-    return jsonify(aptus.unbookMachine(user, pwd, str(machine_id)))
+    cache.delete(__make_cache_key())
+    return jsonify(aptus.unbook_machine(user, pwd, str(machine_id)))
 
 
-## Retrieves invoices (hyresavi)
+
+## Returns a sum of paid, unpaid and pending rent invoices (avisummering)
 ## params:
 ##    user - username (chs mina sidor)
 ##    password - password (chs mina sidor)
 ## 
 ##
 ## result:
-##    JSON string containing paid and unpaid invoices
-@app.route("/api/v1/invoice/list", methods=["GET"])
-@cache.cached(timeout=60, key_prefix=__make_cache_key)
-def invoiceList():
+##    JSON string containing amount of paid, unpaid and pending
+@app.route("/api/v1/invoice/sum", methods=["GET"])
+def invoice_sum():
     user = request.form["user"]
     pwd = request.form["password"]
-    return jsonify(aptus.getInvoiceList(user, pwd))
+    return jsonify(aptus.get_invoice_sum(user, pwd))
 
-    
+
+
+## Retrieves details about invoices (hyresavi)
+## params:
+##    user - username (chs mina sidor)
+##    password - password (chs mina sidor)
+## 
+##
+## result:
+##    JSON string containing invoices
+@app.route("/api/v1/invoice/list", methods=["GET"])
+@cache.cached(timeout=60, key_prefix=__make_cache_key)
+def invoice_list():
+    user = request.form["user"]
+    pwd = request.form["password"]
+    return jsonify(aptus.get_invoice_list(user, pwd))
+
+
+
+## Retrieves contact info for user
+## params:
+##    user - username (chs mina sidor)
+##    password - password (chs mina sidor)
+## 
+##
+## result:
+##    JSON string containing user info
+@app.route("/api/v1/contact/info", methods=["GET"])
+def contact_info():
+    user = request.form["user"]
+    pwd = request.form["password"]
+    return jsonify(aptus.get_contact_info(user, pwd))
+
+
 
 ## Destroys cache of user. Used for debugging purposes
 ## params:
@@ -166,9 +203,9 @@ def invoiceList():
 ##
 ## result:
 ##    Acknowledgement of destroyed cache
-@app.route("/api/v1/cache/destroy")
-def destroyCache():
+@app.route("/api/v1/cache/destroy", methods=["GET"])
+def destroy_cache():
     user = request.form["user"]
     pwd = request.form["password"] 
-    cache.delete_memoized(__make_cache_key())
-    return jsonify(status="success", data="Cache destroyed for user: " + __make_cache_key())
+    cache.delete(__make_cache_key())
+    return jsonify(status="success", data="Cache destroyed for user: " + user)
