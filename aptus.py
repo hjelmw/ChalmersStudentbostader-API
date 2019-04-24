@@ -1,58 +1,94 @@
-import lxml.html
+#local modules
+import cookiehandler
 import card
+
+from werkzeug.exceptions import Unauthorized, HTTPException
+import lxml.html
 import requests
 import json
 import re
 
+
+
 session = requests.Session()
 
-## maybe remove
-def chsLogin(user, pwd):
-    login_response = session.post("https://www.chalmersstudentbostader.se/wp-login.php", data = {"log" : user, "pwd" : pwd})
-    return "error" if login_response.url[-9:] == "err=login" else login_response
+
+
+## controls how many minutes before a cookie expires. Can be changed
+cookie_duration = 10
+## dict to store instances of CookieHandler class
+user_cookies = dict()
 
 
 
-## helper function, returns the URL for aptusport or laundry services
-## return format: <baseURL>?module=<Lock|Booking>&customerName=<Customer>&timestamp=<Timestamp>&hash=<Hash>
-def getAptusUrl(user, pwd, sel):
+
+############################## Helper functions ##############################
+
+## handles login and sets cookies in user_cookies dict.
+## description is for specifying if you want cookies for apt-chalmersstudentbostader.se (aspx) or just chalmersstudentbostader.se (chs)
+def handle_login(user, pwd, description):
+    # lazy eval makes this condition work
+    if(not user in user_cookies or not user_cookies[user].get_cookies()):
+        
+        # init cookihandler for user
+        user_cookies[user] = cookiehandler.CookieHandler(cookie_duration)
+        # login to mina sidor. Store cookies
+        chs_cookies = chs_login(user, pwd).cookies
+        user_cookies[user].add_cookie({ "chs" :  chs_cookies})
+
+        need_aspx = True if description in {"laundry", "lock"} else False
+
+        # if we need aspx cookies (laundry or lock). e.g invoices and contact info does not need this
+        if(need_aspx):
+            # get lock or laundry url
+            aspx_url = get_aptus_url(user, need_aspx and description == "laundry")
+            # goto aspx_url. Store cookies
+            aspx_cookies = session.get(aspx_url).cookies
+            user_cookies[user].add_cookie({ "aspx": aspx_cookies })
+
+
+
+def chs_login(user, pwd):
     login_response = session.post("https://www.chalmersstudentbostader.se/wp-login.php", data = {"log" : user, "pwd" : pwd})
     
-    if(login_response.url[-9:] == "err=login"):
-        return "error"
+    #login error
+    #raise httpexception instead?
+    if login_response.url[-9:] == "err=login": 
+         raise Unauthorized("There was an error logging in. This is most likely due to an incorrect username or password")
+    return login_response
 
-    r = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=aptuslogin@APTUSPORT&widgets[]=aptuslogin")
-    s = json.loads(r.text[2:-2])
+
+
+## returns the URL for aptusport or laundry services. sel - True/False
+## return format:
+##     <baseURL>?module=<Lock|Booking>&customerName=<Customer>&timestamp=<Timestamp>&hash=<Hash>
+def get_aptus_url(user, sel):
+    aptus_response = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=aptuslogin@APTUSPORT&widgets[]=aptuslogin", 
+        cookies=user_cookies[user].get_cookies()["chs"])
+
+    aptus_json = json.loads(aptus_response.text[2:-2])
+
+    if(not aptus_json["data"]):
+        raise HTTPException("Error in get_aptus_url(). Could not fetch aptus URL (aptuslogin)")
 
     # selects Aptusport URL or Laundry URL.
-    which_aptus = "aptuslogin@APTUSPORT" if bool(sel) else "aptuslogin"
-    return json.loads(str(s["data"][which_aptus]["objekt"][0]).replace('\'',"\""))["aptusUrl"]
+    widget_url = "aptuslogin@APTUSPORT" if bool(sel) else "aptuslogin"
+    return json.loads(str(aptus_json["data"][widget_url]["objekt"][0]).replace('\'',"\""))["aptusUrl"]
 
 
 
-## given credentials and door, opens it    
-def unlockDoor(user, pwd, door_name):
-    unlock_url = getAptusUrl(user, pwd, True)
-    if(unlock_url == "error"): 
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
+############################## Handles flask requests (from app.py) ##############################
 
-    session.get(unlock_url) 
-    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/Lock/UnlockEntryDoor/" + door_name)
+## given credentials and door, opens it
+def unlock_door(user, pwd, door_name):
+    handle_login(user, pwd, "lock")
+
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/Lock/UnlockEntryDoor/" + door_name,
+        cookies=user_cookies[user].get_cookies()["aspx"])
     
     open_res = json.loads(res.text)
     if(not open_res["StatusText"]):
-        return {
-            "status" : "error",
-            "data" : {
-                "id" : door_name,
-                "message" : "Error. Could not unlock the door"
-            }
-        }    
+        raise HTTPException("Error in unlock_door(). Could not open the door")
 
     return {
         "status" : "success",
@@ -64,104 +100,99 @@ def unlockDoor(user, pwd, door_name):
 
 
 
-def getAvailableDoors(user, pwd):
-    unlock_url = getAptusUrl(user, pwd, True)
-    if(unlock_url == "error"): 
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
+def get_available_doors(user, pwd):
+    handle_login(user, pwd, "lock")
 
-    res = session.get(unlock_url)
-    return card.Card(res.content, 0, "door", "door_id").getCard()
-    
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/Lock", 
+        cookies=user_cookies[user].get_cookies()["aspx"])
+    return card.Card(res.content, 0, "door", "door_id").get_card()
+
 
 
 ## fetches users currently booked laundry passes
-def getLaundryBookings(user, pwd):
-    laundry_url = getAptusUrl(user, pwd, False)
-    if(laundry_url == "error"): 
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
-    
-    res = session.get(laundry_url)
-    #return card.Card(res, True, "timestamp", "duration", "day", "machines", "machine_id", "street").getCard()
-    return card.Card(res.content, 1, "timestamp", "duration", "day", "machines", "street", "machine_id").getCard()
+def get_laundry_bookings(user, pwd):
+    handle_login(user, pwd, "laundry")
+
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking", 
+        cookies=user_cookies[user].get_cookies()["aspx"])
+    return card.Card(res.content, 1, "timestamp", "duration", "day", "machines", "street", "machine_id").get_card()
 
 
 
-## returns closest available machines
-def getAvailableMachines(user, pwd, num):
-    laundry_url = getAptusUrl(user, pwd, False)
-    if(laundry_url == "error"): 
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
-       
-    session.get(laundry_url)
-    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num)
-    return card.Card(res.content, 2, "time","date", "laundry_room", "street", "misc").getCard()
+## returns closest available passes for booking
+def get_available_machines(user, pwd, num):
+    handle_login(user, pwd, "laundry")
 
-
-
-# returns a list of invoices, amounts, status of payment, when to pay etc
-def getInvoiceList(user, pwd):
-    login_response = chsLogin(user, pwd)
-    if(login_response == "error"):
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
-
-    res = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=avilista")
-    
-    avilista_html = json.loads(res.content[2:-2])["html"]["avilista"]
-
-    # decides between aptusport or laundry services
-    return card.Card(avilista_html, 3, "invoice", "invoice_status", "amount", "date_of_payment", "ocr", "pdf_link").getCard()
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num, 
+        cookies=user_cookies[user].get_cookies()["aspx"])
+    return card.Card(res.content, 2, "time","date", "laundry_room", "street", "misc").get_card()
 
 
 
 ## books a machine
-def bookMachine(user, pwd, bookingGrpNo, passNo, passDate):
-    laundry_url = getAptusUrl(user, pwd, False)
-    if(laundry_url == "error"): 
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
+def book_machine(user, pwd, booking_group_no, pass_no, pass_date):
+    handle_login(user, pwd, "laundry")
 
-    session.get(laundry_url)
-    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/Book?passNo="+passNo+"&passDate="+passDate+"&bookingGroupId="+bookingGrpNo)
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/Book?passNo="+pass_no+"&passDate="+pass_date+"&bookingGroupId="+booking_group_no, 
+        cookies=user_cookies[user].get_cookies()["aspx"])
     # scrape result of booking machine
-    return card.Card(res.content, 4, "booking_result").getCard()
+    return card.Card(res.content, 4, "booking_result").get_card()
 
 
 
-def unbookMachine(user, pwd, machine_id):
-    laundry_url = getAptusUrl(user, pwd, False)
-    if(laundry_url == "error"): 
-        return {
-            "status" : "failure",
-            "data" : {
-                "message" : "Could not authenticate against mina sidor. This is most likely due to an incorrect username or password."
-            }
-        }
+# cancels laundry pass 
+def unbook_machine(user, pwd, machine_id):
+    handle_login(user, pwd, "laundry")
 
-    session.get(laundry_url)
-    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/Unbook/" + machine_id)
+    res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/Unbook/" + machine_id, 
+        cookies=user_cookies[user].get_cookies()["aspx"])
     #scrape result of unbooking machine
-    return card.Card(res.content, 4, "unbooking_result").getCard()
+    return card.Card(res.content, 4, "unbooking_result").get_card()
+
+
+
+# returns sum of paid, pending and unpaid invoices
+def get_invoice_sum(user, pwd):
+    handle_login(user, pwd, "chs")
+
+    res = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=avisummering", 
+        cookies=user_cookies[user].get_cookies()["chs"])
+    
+    # invoice sum returned in JSON so we do not need to scrape this either.
+    invoice_sum_json = json.loads(res.content[2:-2])["data"]
+    if (not invoice_sum_json["avisummering"]):
+        raise HTTPException("Error in get_invoice_sum(). Could not fetch invoice sum (avisummering)")
+
+    return { "data" : invoice_sum_json, "status": "success"}
+
+
+
+# returns a detailed list of invoices, amounts, status of payment, when to pay etc
+def get_invoice_list(user, pwd):
+    handle_login(user, pwd, "chs")
+
+    res = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=avilista", 
+        cookies=user_cookies[user].get_cookies()["chs"])
+
+    # invoice data embedded in HTML so we must scrape it with Card class
+    avilista_html = json.loads(res.content[2:-2])["html"]["avilista"]
+    return card.Card(avilista_html, 3, "invoice", "invoice_status", "amount", "date_of_payment", "ocr", "pdf_link").get_card()
+
+
+
+# returns contact info for user
+def get_contact_info(user, pwd):
+    handle_login(user, pwd, "chs")
+
+    res = session.get("https://www.chalmersstudentbostader.se/widgets/?callback=?&widgets[]=kontaktuppgifter", 
+        cookies=user_cookies[user].get_cookies()["chs"])
+
+    # contact info returned in JSON so we do not need to scrape it.
+    contact_json = json.loads(res.content[2:-2])["data"]
+    if(not contact_json["kontaktuppgifter"]):
+        raise HTTPException("Error in get_contact_info(). Could not fetch contact info (kontaktuppgifter)")
+
+    return {"data" : contact_json, "status" : "success"}
+
+
+
