@@ -72,9 +72,13 @@ Body:
  * View your current laundry schedule
  * View X amount of closest available laundry times
 
-#### Misc
- * View rent invoices and their status (pending/paid etc) (Hyresavi)
+#### Rent and invoices (hyresavi) 📝
+ * View summary of paid, unpaid and pending invoices
+ * View detailed info on rent invoices and their status
+ 
+### Tenant 👱
+ * View tenant info (name, phone, email etc)
 
-# In progress
- * View and change tenant info (phone number, email etc).
- * View available laundry times on specific date
+# In progress (maybe)
+ * Change tenant info
+ * Queue days
