@@ -18,11 +18,11 @@ class CookieHandler:
     def __check_expired(self):
         curr_time = time.time()
 
-        if(curr_time - self.start_time <= self.timer*60*1000):
+        if(curr_time - self.start_time >= self.timer*60):
             # cookie expired
             self.cookies = {}
             self.timer = 0
-            self.epoch_start = 0
+            self.start_time = 0
             return {}
         else:
             return self.cookies
@@ -30,7 +30,7 @@ class CookieHandler:
 
     def __init__(self, timer):
         self.timer = timer
-        self.time_now = time.time()
+        self.start_time = time.time()
 
     # adds cookie dict to cookies dict
     def add_cookie(self, cookie):
