@@ -23,7 +23,10 @@ class Card:
         # init temp dict. Will append to card_obj later
         temp = {}
 
+        ## Scrape info from HTML page
         for arg in argv:
+
+            #### Laundry (Schedule and available passes) ####
             if(arg == "time"):
                 temp["time"] = card.xpath(".//div[1]/text()")[0][18:-14]
 
@@ -49,19 +52,21 @@ class Card:
             elif(arg == "laundry_room"):
                 temp["laundry_room"] = card.xpath(".//div[4]/text()")[0][18:]
 
+            #### Available doors ####
             elif(arg == "door"):
                 temp["door"] = card.xpath(".//div/span/text()")[0]
 
             elif(arg == "door_id"):
-                #extracts door id from function call. Ex UnlockEntranceDoor(123456)
+                # extracts door id from function call. Ex UnlockEntranceDoor(123456) returns 123456
                 rgx_door_id = re.search(r"\(([^)]+)\)",card.xpath(".//button/@onclick")[0]).group(1)
                 temp["door_id"] = int(rgx_door_id)
             
+            #### Invoice ####
             elif(arg == "invoice"):
                 temp["invoice"] = card.xpath(".//div[1]/h4/text()")[0]
 
             elif(arg == "invoice_status"):
-                #sometimes the card contains multiple <span> tags so we join them together
+                # sometimes the card contains multiple <span> tags so we join them together
                 temp["invoice_status"] =  "".join(card.xpath(".//div[2]/div/span/text()"))
 
             elif(arg == "amount"):
@@ -76,29 +81,46 @@ class Card:
             elif(arg == "pdf_link"):
                 temp["pdf_link"] = card.xpath(".//div[3]/a/@href")[0]
 
-            elif(arg == "booking_result" or arg == "unbooking_result"):
+            #### booking/cancel result ####
+            elif(arg in {"booking_result", "unbooking_result"}):
                 temp[arg] = re.search(r"(?<=FeedbackDialog\(\').[^']*", card.xpath(".//text()")[0]).group()
+            
+            #### News ####
+            elif(arg == "news_date"):
+                temp["news_date"] = card.xpath(".//span[@class=\"Date\"]/text()")[0]
 
-            # if /laundry/available
-            # misc is booking pass related data. Extracted from url parameters.
-            elif(arg == "misc" and sel == 2):
+            elif(arg == "news_headline"):
+                temp["news_headline"] = card.xpath(".//header[@class=\"Header\"]/h2/a/text()")[0]
+            
+            elif(arg == "news_link"):
+                temp["news_link"] = card.xpath(".//header[@class=\"Header\"]/h2/a/@href")[0]
+    
+            elif(arg == "news_text"):
+                temp["news_text"] = card.xpath(".//p/text()")[0]          
+
+            #### Booking pass related data ####
+            # needed for /laundry/book
+            # extracted from url parameter. 
+            # Ex: passNo=xx, bookingGroupId=xx, passDate=yyyy-mm-dd
+            elif(arg == "misc"):
                 misc = card.xpath(".//button/@onclick")[0][10:-17]
                 for misc_item in re.findall(r"(\?|\&)([^=]+)\=([^&]+)",misc):
                     temp[misc_item[1]] = misc_item[2]
 
         # add temp dict to return value
         self.card_obj["data"][i] = temp
-        
+
     ## HTML_OBJ needs to be the HTML document for parsing to work
     ## args for parameters you want returned
     def __init__(self, HTML_OBJ, sel, *argv):        
         self.card_obj["data"] = {}
 
-        # 0 - getAvailableDoors
-        # 1 - getLaundryBookings
-        # 2 - getAvailableMachines
-        # 3 - getInvoiceList
-        # 4 - BookMachine/UnbookMachine
+        # 0 - get_available_doors
+        # 1 - get_laundry_bookings
+        # 2 - get_available_machines
+        # 3 - get_invoice_list
+        # 4 - book_machine/unbook_machine
+        # 5 - get_news
         try:
             html_obj = lxml.html.fromstring(HTML_OBJ)
             if(sel == 0):
@@ -110,11 +132,14 @@ class Card:
             elif(sel == 3):
                 booking_cards = html_obj.xpath(".//div[contains(@class,\"AviListItem\")]/div/div/div/div/div")
             elif(sel == 4):
-                booking_cards = html_obj.xpath("/html/body/div/section/script[contains(text(), \"FeedbackDialog\")]")
-                #xpath empty means something went wrong 
-                if(not booking_cards):
-                    raise AptusResultException("Aptus booking/unbooking not succesfull")
-                    
+                booking_cards = html_obj.xpath(".//script[contains(text(), \"FeedbackDialog\")]")
+            elif(sel == 5):
+                booking_cards = html_obj.xpath("/html/body/div[1]/div/div/div/div/div[@class=\"span9\"]/article")
+
+            #xpath empty means something went wrong 
+            if(not booking_cards):
+                raise BookingCardParseException("xpath return empty. Check parameters")
+
             i = 0
             # extract arguments from HTML object and build dict
             for card in booking_cards:
@@ -122,10 +147,10 @@ class Card:
                 i += 1
             self.card_obj["status"] = "success"
         
-        except AptusResultException as e:
-            self.card_obj = {"status": "error", "data" : {"message": " Make sure pass/machine exists, is not already taken or unbooked.", "details" : str(e)}}
+        except BookingCardParseException as e:
+            self.card_obj = {"status": "error", "data" : {"message": "Error parsing a card", "details" : str(e), "parameters": {"sel": sel, "argv": argv}}}
         except Exception as e:
-            self.card_obj = {"status": "error", "data" : {"message":"An error occured while parsing HTML object", "details" : str(e)}}
+            self.card_obj = {"status": "error", "data" : {"message":"An unspecified error occured while parsing HTML object", "details" : str(e)}}
         
         
     def get_card(self):
@@ -133,5 +158,5 @@ class Card:
 
 
 #Exception class to handle errors with booking/unbooking
-class AptusResultException(Exception):
+class BookingCardParseException(Exception):
     pass

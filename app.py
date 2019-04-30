@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, redirect, url_for
-from flask_caching import Cache
+#from flask_caching import Cache
 from werkzeug.exceptions import HTTPException
 import aptus
 import json
@@ -9,7 +9,8 @@ app = Flask(__name__)
 
 ## simple for test/dev
 ## maybe redis for prod?
-cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
+#cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
+
 
 
 ## for Flask-Cache
@@ -17,7 +18,6 @@ cache = Cache(app, config = {"CACHE_TYPE" : "simple"})
 def __make_cache_key(*args, **kwargs):
     args = str(hash(request.form["user"] + request.form["password"]))
     return (args).encode("utf-8")
-
 
 
 
@@ -30,6 +30,7 @@ def handle_error(e):
     if isinstance(e, HTTPException):
         code = e.code
     return jsonify(status="error", code=code, error=str(e)), code
+
 
 
 ## for errorhandler
@@ -66,7 +67,7 @@ def unlock(door_name):
 ## result: 
 ##    JSON string containing available doors
 @app.route("/api/v1/door/available", methods=["GET"])
-@cache.cached(timeout=300, key_prefix=__make_cache_key)
+#@cache.cached(timeout=300)
 def available_doors():
     user = request.form["user"]
     pwd = request.form["password"]
@@ -82,7 +83,7 @@ def available_doors():
 ## result:
 ##    JSON string containing booked laundry rooms
 @app.route("/api/v1/laundry/schedule", methods=["GET"])
-@cache.cached(timeout=60, key_prefix=__make_cache_key)
+#@cache.cached(timeout=300, key_prefix=__make_cache_key)
 def laundry_schedule():
     user = request.form["user"]
     pwd = request.form["password"]
@@ -99,7 +100,7 @@ def laundry_schedule():
 ## result:
 ##    JSON string containing available machines and their associated data.
 @app.route("/api/v1/laundry/available/<num>", methods=["GET"])
-@cache.cached(timeout=60)
+#@cache.cached(timeout=300)
 def available_machines(num):
     user = request.form["user"]
     pwd = request.form["password"]
@@ -124,16 +125,17 @@ def laundry_book():
     booking_group_no = request.args.get("bookingGroupNo")
     pass_no = request.args.get("passNo")
     pass_date = request.args.get("passDate")
-    cache.delete(__make_cache_key())
+
+  #  cache.delete(__make_cache_key())
     return jsonify(aptus.book_machine(user, pwd, str(booking_group_no), str(pass_no), str(pass_date)))
-        
+
 
 
 ## cancels a booking
 ## params:
 ##    user - username (chs mina sidor)
 ##    password - password (chs mina sidor)
-##    machineId - id of machine
+##    machine_id - id of machine
 ##
 ## result:
 ##    JSON string containing a success or failure
@@ -141,7 +143,8 @@ def laundry_book():
 def laundry_cancel(machine_id):
     user = request.form["user"]
     pwd = request.form["password"]
-    cache.delete(__make_cache_key())
+
+ #   cache.delete(__make_cache_key())
     return jsonify(aptus.unbook_machine(user, pwd, str(machine_id)))
 
 
@@ -155,6 +158,7 @@ def laundry_cancel(machine_id):
 ## result:
 ##    JSON string containing amount of paid, unpaid and pending
 @app.route("/api/v1/invoice/sum", methods=["GET"])
+#@cache.cached(timeout=300, key_prefix=__make_cache_key)
 def invoice_sum():
     user = request.form["user"]
     pwd = request.form["password"]
@@ -171,7 +175,7 @@ def invoice_sum():
 ## result:
 ##    JSON string containing invoices
 @app.route("/api/v1/invoice/list", methods=["GET"])
-@cache.cached(timeout=60, key_prefix=__make_cache_key)
+#@cache.cached(timeout=300, key_prefix=__make_cache_key)
 def invoice_list():
     user = request.form["user"]
     pwd = request.form["password"]
@@ -188,10 +192,26 @@ def invoice_list():
 ## result:
 ##    JSON string containing user info
 @app.route("/api/v1/contact/info", methods=["GET"])
+#@cache.cached(timeout=300, key_prefix=__make_cache_key)
 def contact_info():
     user = request.form["user"]
     pwd = request.form["password"]
     return jsonify(aptus.get_contact_info(user, pwd))
+
+
+
+## Retrieves the latest news from Chalmers Studentbostäder
+## params:
+##    news_category - What type of news to fetch
+##                      e.g (nyheter, omradesnyheter)   
+##
+##
+## result:
+##    JSON string containing latest news from leaser
+@app.route("/api/v1/news/<news_category>", methods=["GET"])
+#@cache.cached(timeout=300)
+def news(news_category):
+    return jsonify(aptus.get_news(news_category))
 
 
 
@@ -207,5 +227,6 @@ def contact_info():
 def destroy_cache():
     user = request.form["user"]
     pwd = request.form["password"] 
-    cache.delete(__make_cache_key())
+
+ #   cache.delete(__make_cache_key())
     return jsonify(status="success", data="Cache destroyed for user: " + user)

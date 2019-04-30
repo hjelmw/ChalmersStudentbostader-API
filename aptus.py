@@ -2,7 +2,7 @@
 import cookiehandler
 import card
 
-from werkzeug.exceptions import Unauthorized, HTTPException
+from werkzeug.exceptions import Unauthorized, HTTPException, NotFound
 import lxml.html
 import requests
 import json
@@ -12,13 +12,11 @@ import re
 
 session = requests.Session()
 
-
-
 ## controls how many minutes before a cookie expires. Can be changed
-cookie_duration = 10
+## aspx cookies seem to only work for 5 minutes. chs cookies work longer
+cookie_duration = 5
 ## dict to store instances of CookieHandler class
 user_cookies = dict()
-
 
 
 
@@ -35,10 +33,10 @@ def handle_login(user, pwd, description):
         # login to mina sidor. Store cookies
         chs_cookies = chs_login(user, pwd).cookies
         user_cookies[user].add_cookie({ "chs" :  chs_cookies})
-
+        
+        # if we need aspx cookies (laundry or lock). e.g invoices and contact info does not need this
         need_aspx = True if description in {"laundry", "lock"} else False
 
-        # if we need aspx cookies (laundry or lock). e.g invoices and contact info does not need this
         if(need_aspx):
             # get lock or laundry url
             aspx_url = get_aptus_url(user, need_aspx and description == "laundry")
@@ -47,7 +45,7 @@ def handle_login(user, pwd, description):
             user_cookies[user].add_cookie({ "aspx": aspx_cookies })
 
 
-
+## Attempts to log in to chs mina sidor
 def chs_login(user, pwd):
     login_response = session.post("https://www.chalmersstudentbostader.se/wp-login.php", data = {"log" : user, "pwd" : pwd})
     
@@ -125,7 +123,7 @@ def get_available_machines(user, pwd, num):
 
     res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num, 
         cookies=user_cookies[user].get_cookies()["aspx"])
-    return card.Card(res.content, 2, "time","date", "laundry_room", "street", "misc").get_card()
+    return card.Card(res.content, 2, "time", "date", "laundry_room", "street", "misc").get_card()
 
 
 
@@ -195,4 +193,11 @@ def get_contact_info(user, pwd):
     return {"data" : contact_json, "status" : "success"}
 
 
+# Retrieves the latest news from chalmers studentbostäder
+def get_news(news_category):
+    if(news_category in {"nyheter", "omradesnyhet"}):
+        news_page_html = session.get("https://www.chalmersstudentbostader.se/nyheter/kategori/" + news_category)
+    else:
+        raise NotFound("not a valid address for news (nyheter/omradesnyhet)")
 
+    return card.Card(news_page_html.content, 5, "news_date", "news_headline", "news_text", "news_link").get_card()
