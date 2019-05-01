@@ -17,6 +17,9 @@ flask run
 ```
 Server will start on `localhost:5000` See Usage for example requests
 
+# Testing
+Tests are written in [pytest](https://docs.pytest.org/en/latest/). See [/test](/test) for details.
+
 
 # Usage
 Check out available requests on Postman. You can view the [documentation](https://documenter.getpostman.com/view/6066375/S1EUtF9a) or click the button below to import the colletion to your own Postman app.
@@ -26,12 +29,11 @@ Check out available requests on Postman. You can view the [documentation](https:
 ### Example Request & Response
 ```
 GET /api/v1/laundry/available/2
-Content-Type: application/json
 Body: 
 user=<user>
 password=<password>
 ```
-```
+```json
 200 OK
 Content-Type: application/json
 Server: Werkzeug/0.15.2 Python/3.7.2
@@ -78,6 +80,10 @@ Body:
  
 ### Tenant 👱
  * View tenant info (name, phone, email etc)
+
+### News 📰
+ * Get the latest and greatest from Stiftelsen Chalmers Studenbostäder (Currently Swedish 🇸🇪 only)
+
 
 # In progress (maybe)
  * Change tenant info
