@@ -113,7 +113,7 @@ def get_laundry_bookings(user, pwd):
 
     res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking", 
         cookies=user_cookies[user].get_cookies()["aspx"])
-    return card.Card(res.content, 1, "timestamp", "duration", "day", "machines", "street", "machine_id").get_card()
+    return card.Card(res.content, 1, "time", "duration", "day", "machines", "street", "machine_id").get_card()
 
 
 
@@ -123,7 +123,7 @@ def get_available_machines(user, pwd, num):
 
     res = session.get("https://apt-www.chalmersstudentbostader.se/AptusPortal/CustomerBooking/FirstAvailable?categoryId=1&firstX=" + num, 
         cookies=user_cookies[user].get_cookies()["aspx"])
-    return card.Card(res.content, 2, "time", "date", "laundry_room", "street", "misc").get_card()
+    return card.Card(res.content, 2, "time", "date", "laundry_room", "street", "booking_params").get_card()
 
 
 
