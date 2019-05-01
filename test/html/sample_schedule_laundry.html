@@ -1,0 +1,53 @@
+
+
+<!DOCTYPE html>
+<html style="background-color:black">
+   <head>
+     
+   </head>
+   <body style="position:relative; overflow-x:hidden;" data-root='http://apt-www.chalmersstudentbostader.se/AptusPortal/'>
+      <div class="main-content" style="position:relative;">
+         <header class="header" style="position:relative;">
+            <div style="position:relative; z-index:1; max-width:90%;">
+               <h1 id="lblCurrentLocation" class="pageHeader">Boka — Mina bokningar</h1>
+               <div style="display:inline-block; white-space:normal"></div>
+            </div>
+            <div id="headNavigationRight" style="position:absolute; right:0; top:0; margin:1.2rem; z-index:2;/*display:none*/">
+            </div>
+         </header>
+         <section class="bodySection" tabindex="-1">
+            <div id="content" style="display:none; background-color:white;">
+               <p id="cancellationMsg" tabindex="-1" role="alert" aria-hidden="true" style="font-size:0">Avbokning p&#229;g&#229;r.</p>
+               <div style="overflow:hidden">
+                  <div id="newBookingCard" class="bookingCard" style="position:relative">
+                     <button type="button" class="cardSmallFont" id="btnNewBooking" style="position:absolute; top:0; bottom:0; left:0; padding:0; margin:0; width:100%; height:100%; background-color:transparent">
+                     <img src="/AptusPortal/Images/Booking/ny_bokning.png" alt="" /><br /><br />
+                     Ny bokning
+                     </button>
+                  </div>
+                  <div class="bookingCard">
+                     <div>
+                     13:00-16:00
+                     </div>
+                     <div class="cardSmallFont">
+                     ONS 1 MAJ
+                  </div>
+                     <div style="padding:1rem">
+                        <img src="/AptusPortal/Images/Booking/tvatt.png" alt="" />
+                     </div>
+                     <div>
+                     Tv&#228;ttstuga 10<br />
+                     </div>
+                     <div class="cardSmallFont">
+                     EB 90 Tv&#228;ttstuga 1-5<br /><br />
+                     </div>
+                     <button aria-label="Avboka Tvätt 2019-05-01 13:00" class="unbookButton" id="8434329" title="Avboka" type="button">Avboka</button>
+                     <script>ConfirmCancelBooking('8434329', '/AptusPortal/CustomerBooking/Unbook/8434329', 'Vill du avboka din bokning <b>13:00-16:00</b> på onsdag 1 maj?', 'AVBOKA?', 'Avboka', 'Avbryt');</script>            
+                  </div>
+               </div>
+         </div>
+      </section>
+   </div>
+</body>
+</html>
+

@@ -1,0 +1,68 @@
+
+
+<!DOCTYPE html>
+<html style="background-color:black">
+   <head></head>
+   <body style="position:relative; overflow-x:hidden;" data-root='http://apt-www.chalmersstudentbostader.se/AptusPortal/'>
+      <div class="main-content" style="position:relative;">
+         <header class="header" style="position:relative;">
+         </header>
+         <section class="bodySection" tabindex="-1">
+            <div id="content" style="display:none; background-color:white">
+               <p id="bookingMsg" tabindex="-1" role="alert" aria-hidden="true" style="font-size:0">Bokning p&#229;g&#229;r.</p>
+               <div class="bookingCard">
+                  <div>
+                     02:00-04:00
+                  </div>
+                  <div class="cardSmallFont">
+                     TIS 30 APR
+                  </div>
+                  <div style="padding:1rem">
+                     <img src="/AptusPortal/Images/Booking/tvatt.png" alt="" />
+                  </div>
+                  <div>
+                     Tv&#228;ttmaskin 1 o 2<br />
+                  </div>
+                  <div class="cardSmallFont">
+                     Gibraltarg 82 Tv&#228;tt<br /><br />
+                  </div>
+                  <button type="button"
+                     onclick="DoBooking('/AptusPortal/CustomerBooking/BookFirstAvailable?passNo=1&amp;passDate=2019-04-30&amp;bookingGroupId=38'); return false;"
+                     class="bookButton bookButtonFirstAvailable"
+                     aria-label="Boka Tv&#228;ttmaskin 1 o 2 den 30 april 2019 02:00 Till 04:00">
+                  Boka
+                  </button>
+               </div>
+               <div class="bookingCard">
+                  <div>
+                     02:00-04:00
+                  </div>
+                  <div class="cardSmallFont">
+                     TIS 30 APR
+                  </div>
+                  <div style="padding:1rem">
+                     <img src="/AptusPortal/Images/Booking/tvatt.png" alt="" />
+                  </div>
+                  <div>
+                     Tv&#228;ttmaskin 3 o 4<br />
+                  </div>
+                  <div class="cardSmallFont">
+                     Gibraltarg 82 Tv&#228;tt<br /><br />
+                  </div>
+                  <button type="button"
+                     onclick="DoBooking('/AptusPortal/CustomerBooking/BookFirstAvailable?passNo=1&amp;passDate=2019-04-30&amp;bookingGroupId=39'); return false;"
+                     class="bookButton bookButtonFirstAvailable"
+                     aria-label="Boka Tv&#228;ttmaskin 3 o 4 den 30 april 2019 02:00 Till 04:00">
+                  Boka
+                  </button>
+               </div>
+            </div>
+            <br />
+         </section>
+         <footer class="footer" style="position:fixed; bottom:0; width:100%; text-align:center; display:none">
+         </footer>
+         <a id="lastFocus" href="javascript:void(0);" style="line-height:none" aria-label=" "></a>
+      </div>
+   </body>
+</html>
+
