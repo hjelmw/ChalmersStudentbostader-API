@@ -1,5 +1,9 @@
 # ChalmersStudentbostader-API
-A simple REST-API for wrapping around the services for tenants of Chalmers Studentbostäder [mina sidor](https://www.chalmersstudentbostader.se/min-bostad/). 
+## Update!
+It was cool while it lasted but since I have not kept this API up-to-date for a few years it no longer functions. However, if you want to write your own REST-API for Chalmers Student Housing this can probably be used as some sort of reference at the very least!
+
+## Introduction
+A simple REST-API for wrapping around the services for tenants of Chalmers Studentbostäder (Student Housing) [mina sidor](https://www.chalmersstudentbostader.se/min-bostad/). 
 
 The API is built on the microframework [Flask](http://flask.pocoo.org/) and uses a mix of web scraping and API calls to a "hidden" REST API maintaned by Aptusport.
 
@@ -35,9 +39,6 @@ password=<password>
 ```
 ```json
 200 OK
-Content-Type: application/json
-Server: Werkzeug/0.15.2 Python/3.7.2
-Body:
 {
 	"status": "success",
 	"data": {
